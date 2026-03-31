@@ -80,11 +80,14 @@ def convert_with_libreoffice(input_path: str, output_path: str, filter_name: str
 
 # ── HWP/HWPX ──
 
-def convert_hwp(input_path: str, output_path: str) -> bool:
+def convert_hwp(input_path: str, output_path: str, libre: bool = False) -> bool:
     try:
         import win32com.client
     except ImportError:
-        return convert_with_libreoffice(input_path, output_path, "writer_pdf_Export")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "writer_pdf_Export")
+        print("  [오류] pywin32가 설치되어 있지 않습니다: pip install pywin32")
+        return False
 
     hwp = None
     try:
@@ -105,6 +108,8 @@ def convert_hwp(input_path: str, output_path: str) -> bool:
 
     except Exception as e:
         print(f"  [오류] 한컴오피스 변환 실패: {e}")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "writer_pdf_Export")
         return False
     finally:
         if hwp:
@@ -117,11 +122,14 @@ def convert_hwp(input_path: str, output_path: str) -> bool:
 
 # ── DOC/DOCX ──
 
-def convert_doc(input_path: str, output_path: str) -> bool:
+def convert_doc(input_path: str, output_path: str, libre: bool = False) -> bool:
     try:
         import win32com.client
     except ImportError:
-        return convert_with_libreoffice(input_path, output_path, "writer_pdf_Export")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "writer_pdf_Export")
+        print("  [오류] pywin32가 설치되어 있지 않습니다: pip install pywin32")
+        return False
 
     word = None
     doc = None
@@ -136,6 +144,8 @@ def convert_doc(input_path: str, output_path: str) -> bool:
 
     except Exception as e:
         print(f"  [오류] Word 변환 실패: {e}")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "writer_pdf_Export")
         return False
     finally:
         if doc:
@@ -152,11 +162,14 @@ def convert_doc(input_path: str, output_path: str) -> bool:
 
 # ── XLS/XLSX ──
 
-def convert_xls(input_path: str, output_path: str) -> bool:
+def convert_xls(input_path: str, output_path: str, libre: bool = False) -> bool:
     try:
         import win32com.client
     except ImportError:
-        return convert_with_libreoffice(input_path, output_path, "calc_pdf_Export")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "calc_pdf_Export")
+        print("  [오류] pywin32가 설치되어 있지 않습니다: pip install pywin32")
+        return False
 
     excel = None
     wb = None
@@ -178,6 +191,8 @@ def convert_xls(input_path: str, output_path: str) -> bool:
 
     except Exception as e:
         print(f"  [오류] Excel 변환 실패: {e}")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "calc_pdf_Export")
         return False
     finally:
         if wb:
@@ -194,11 +209,14 @@ def convert_xls(input_path: str, output_path: str) -> bool:
 
 # ── PPT/PPTX ──
 
-def convert_ppt(input_path: str, output_path: str) -> bool:
+def convert_ppt(input_path: str, output_path: str, libre: bool = False) -> bool:
     try:
         import win32com.client
     except ImportError:
-        return convert_with_libreoffice(input_path, output_path, "impress_pdf_Export")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "impress_pdf_Export")
+        print("  [오류] pywin32가 설치되어 있지 않습니다: pip install pywin32")
+        return False
 
     ppt = None
     presentation = None
@@ -210,6 +228,8 @@ def convert_ppt(input_path: str, output_path: str) -> bool:
 
     except Exception as e:
         print(f"  [오류] PowerPoint 변환 실패: {e}")
+        if libre:
+            return convert_with_libreoffice(input_path, output_path, "impress_pdf_Export")
         return False
     finally:
         if presentation:
@@ -240,7 +260,7 @@ def find_browser() -> str | None:
     return None
 
 
-def convert_html(input_path: str, output_path: str) -> bool:
+def convert_html(input_path: str, output_path: str, libre: bool = False) -> bool:
     browser_path = find_browser()
     if not browser_path:
         print("  [오류] Chrome 또는 Edge를 찾을 수 없습니다.")
@@ -289,7 +309,7 @@ CONVERTERS = {
 }
 
 
-def convert_file(input_path: str, output_path: str) -> bool:
+def convert_file(input_path: str, output_path: str, libre: bool = False) -> bool:
     """파일 확장자에 따라 적절한 변환기를 선택하여 PDF로 변환한다."""
     input_path = os.path.abspath(input_path)
     output_path = os.path.abspath(output_path)
@@ -301,7 +321,7 @@ def convert_file(input_path: str, output_path: str) -> bool:
     if not converter:
         return False
 
-    return converter(input_path, output_path)
+    return converter(input_path, output_path, libre=libre)
 
 
 def collect_files(path: str) -> list[Path]:
@@ -337,6 +357,11 @@ def main():
         "-o", "--output",
         help="출력 PDF 파일 또는 폴더 경로 (미지정 시 입력 파일과 같은 위치)",
     )
+    parser.add_argument(
+        "-libre",
+        action="store_true",
+        help="LibreOffice를 폴백 엔진으로 사용",
+    )
     args = parser.parse_args()
 
     # 공백이 포함된 파일명 처리: 인수들을 하나로 합침
@@ -363,7 +388,7 @@ def main():
         else:
             out = file.with_suffix(".pdf")
 
-        if not convert_file(str(file), str(out)):
+        if not convert_file(str(file), str(out), libre=args.libre):
             failed.append(str(file))
     print(f"\n결과: {len(files) - len(failed)}/{len(files)} 성공")
 

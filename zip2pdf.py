@@ -77,6 +77,11 @@ def main():
         "-o", "--output",
         help="출력 PDF 폴더 경로 (미지정 시 해제된 폴더와 같은 위치)",
     )
+    parser.add_argument(
+        "-libre",
+        action="store_true",
+        help="LibreOffice를 폴백 엔진으로 사용",
+    )
     args = parser.parse_args()
 
     # 공백이 포함된 파일명 처리
@@ -115,7 +120,7 @@ def main():
             else:
                 out = file.with_suffix(".pdf")
 
-            if convert_file(str(file), str(out)):
+            if convert_file(str(file), str(out), libre=args.libre):
                 total_success += 1
             else:
                 all_failed_files.append(str(file))

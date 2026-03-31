@@ -9,7 +9,7 @@ PowerPoint가 없는 경우 LibreOffice를 폴백으로 사용합니다.
     python ppt2pdf.py input.pptx -o output.pdf         # 출력 경로 지정
     python ppt2pdf.py ./docs/                          # 폴더 내 모든 PPT/PPTX 일괄 변환
     python ppt2pdf.py ./docs/ -o ./pdfs/               # 출력 폴더 지정
-    python ppt2pdf.py input.pptx --engine libreoffice  # LibreOffice 엔진 강제 사용
+    python ppt2pdf.py input.pptx -libre              # LibreOffice 폴백 활성화
 """
 
 import argparse
@@ -119,7 +119,7 @@ def convert_with_libreoffice(input_path: str, output_path: str) -> bool:
         return False
 
 
-def convert_file(input_path: str, output_path: str, engine: str = "auto") -> bool:
+def convert_file(input_path: str, output_path: str, engine: str = "auto", libre: bool = False) -> bool:
     """단일 파일을 PDF로 변환한다."""
     input_path = os.path.abspath(input_path)
     output_path = os.path.abspath(output_path)
@@ -129,12 +129,12 @@ def convert_file(input_path: str, output_path: str, engine: str = "auto") -> boo
 
     if engine == "powerpoint":
         return convert_with_powerpoint(input_path, output_path)
-    elif engine == "libreoffice":
-        return convert_with_libreoffice(input_path, output_path)
     else:  # auto
         if convert_with_powerpoint(input_path, output_path):
             return True
-        return convert_with_libreoffice(input_path, output_path)
+        if libre:
+            return convert_with_libreoffice(input_path, output_path)
+        return False
 
 
 def collect_ppt_files(path: str) -> list[Path]:
@@ -172,9 +172,14 @@ def main():
     )
     parser.add_argument(
         "--engine",
-        choices=["auto", "powerpoint", "libreoffice"],
+        choices=["auto", "powerpoint"],
         default="auto",
-        help="변환 엔진 선택 (기본값: auto - PowerPoint 우선, LibreOffice 폴백)",
+        help="변환 엔진 선택 (기본값: auto)",
+    )
+    parser.add_argument(
+        "-libre",
+        action="store_true",
+        help="LibreOffice를 폴백 엔진으로 사용",
     )
     args = parser.parse_args()
 
@@ -202,7 +207,7 @@ def main():
         else:
             out = file.with_suffix(".pdf")
 
-        if not convert_file(str(file), str(out), engine=args.engine):
+        if not convert_file(str(file), str(out), engine=args.engine, libre=args.libre):
             failed.append(str(file))
     print(f"\n결과: {len(files) - len(failed)}/{len(files)} 성공")
 
