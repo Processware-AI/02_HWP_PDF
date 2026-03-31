@@ -1,15 +1,16 @@
-# 문서 → PDF 변환 유틸리티
+# 문서 변환 유틸리티
 
 Devloped by 오동석 with Claude MAX
 
-HWP/HWPX, DOC/DOCX, XLS/XLSX, PPT/PPTX, HTML 파일을 PDF로 변환하는 CLI 도구 모음입니다.
+HWP/HWPX, DOC/DOCX, XLS/XLSX, PPT/PPTX, HTML 파일을 PDF로 변환하고, HWP/HWPX 파일을 Markdown으로 변환하는 CLI 도구 모음입니다.
 
 ## 요구 사항
 
 - Windows 10/11
 - Python 3.10+
 - [pywin32](https://pypi.org/project/pywin32/) (`pip install pywin32`)
-- 한컴오피스(한글) 2018 이상 — `hwp2pdf.py` 사용 시
+- [olefile](https://pypi.org/project/olefile/) (`pip install olefile`) — `hwp2md.py`에서 HWP 직접 파싱 시
+- 한컴오피스(한글) 2018 이상 — `hwp2pdf.py`, `hwp2md.py` 사용 시
 - Microsoft Word — `doc2pdf.py` 사용 시
 - Microsoft Excel — `xls2pdf.py` 사용 시
 - Microsoft PowerPoint — `ppt2pdf.py` 사용 시
@@ -74,6 +75,53 @@ python dir2pdf.py report.hwp               # 단일 파일 변환
 | `.ppt`, `.pptx` | Microsoft PowerPoint (폴백: LibreOffice) |
 
 > 임시 파일(`~$`로 시작하는 파일)은 자동으로 제외됩니다.
+
+---
+
+## hwp2md.py — HWP/HWPX → Markdown
+
+한컴오피스 COM 자동화를 사용하여 HTML로 변환 후 Markdown으로 변환합니다. 한컴오피스가 없는 경우 HWPX는 XML 직접 파싱, HWP는 OLE2 바이너리 파싱으로 폴백합니다.
+
+### 사용법
+
+```bash
+python hwp2md.py input.hwp                    # 단일 파일 변환
+python hwp2md.py input.hwp -o output.md        # 출력 경로 지정
+python hwp2md.py ./docs/                       # 폴더 일괄 변환 (재귀 탐색)
+python hwp2md.py ./docs/ -o ./markdown/        # 출력 폴더 지정
+python hwp2md.py input.hwp --engine direct     # 직접 파싱 엔진 강제 사용
+```
+
+### 옵션
+
+| 옵션 | 설명 |
+|------|------|
+| `input` | 변환할 HWP/HWPX 파일 또는 폴더 경로 |
+| `-o`, `--output` | 출력 Markdown 파일 또는 폴더 경로 (미지정 시 원본과 같은 위치) |
+| `--engine` | 변환 엔진: `auto`(기본), `hancom`, `direct` |
+
+### 변환 엔진
+
+| 엔진 | 설명 | 비고 |
+|------|------|------|
+| `auto` | 한컴오피스를 먼저 시도, 실패 시 직접 파싱 폴백 | 기본값 |
+| `hancom` | 한컴오피스 COM → HTML → Markdown | 서식 보존 최고, 한컴오피스 필수 |
+| `direct` | HWPX: XML 파싱 / HWP: OLE2 바이너리 파싱 | 한컴오피스 없이 사용 가능 |
+
+### 변환 방식별 특징
+
+| 방식 | 제목 | 굵게/기울임 | 표 | 목록 | 비고 |
+|------|------|-------------|-----|------|------|
+| 한컴 COM (HTML 경유) | O | O | O | O | 최고 품질 |
+| HWPX 직접 파싱 | O (개요 스타일) | X | X | X | 텍스트 + 제목 구조 |
+| HWP 직접 파싱 | X | X | X | X | 텍스트만 추출 (`olefile` 필요) |
+
+### 지원 파일 형식
+
+| 확장자 | 형식 |
+|--------|------|
+| `.hwp` | 한글 문서 (바이너리, v5) |
+| `.hwpx` | 한글 문서 (XML 기반, OWPML) |
 
 ---
 
